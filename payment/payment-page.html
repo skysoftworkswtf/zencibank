@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZenciBank Payment</title>
+    <!-- Link to external CSS (Tailwind) -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Link to external Shadcn UI CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/shadcn-ui@latest/dist/shadcn-ui.css">
+    <!-- Link to external fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+    <style>
+        /* Custom styles */
+        .shadcn-ui-input {
+            border: 2px solid #d1d5db; /* Tailwind's border-gray-300 */
+            border-radius: 15px;
+            padding: 0.75rem 1rem;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        .shadcn-ui-button {
+            background-color: #000000; /* Tailwind's bg-blue-500 */
+            color: #ffffff;
+            font-weight: 700;
+            padding: 0.75rem 1rem;
+            border-radius: 15px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            text-align: center;
+            transition: background-color 0.3s ease;
+        }
+        .shadcn-ui-button:hover {
+            background-color: #333333; /* Tailwind's bg-blue-600 */
+        }
+        .shadcn-ui-button:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.5); /* Tailwind's focus:ring-blue-200 */
+        }
+        .expiry-date {
+            max-width: 120px;
+        }
+    </style>
+</head>
+<body class="font-roboto bg-gray-100 flex items-center justify-center min-h-screen">
+    <!-- Payment Form -->
+    <div id="payment-form" class="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold">ZenciBank Payment</h1>
+            <p class="text-gray-600">Enter your payment details</p>
+        </div>
+        <form id="card-details-form">
+            <div class="mb-4">
+                <label for="card-number" class="block text-sm font-medium text-gray-700">Card Number</label>
+                <input type="text" id="card-number" placeholder="5454 5454 5454 5454" maxlength="19" class="shadcn-ui-input"/>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="expiry-date" class="block text-sm font-medium text-gray-700">Expiry Date</label>
+                    <input type="text" id="expiry-date" placeholder="MM/YY" maxlength="5" class="shadcn-ui-input expiry-date mt-1"/>
+                </div>
+                <div>
+                    <label for="cvv" class="block text-sm font-medium text-gray-700">CVV</label>
+                    <input type="text" id="cvv" placeholder="123" maxlength="4" class="shadcn-ui-input mt-1"/>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label for="amount" class="block text-sm font-medium text-gray-700">Amount</label>
+                <input type="text" id="amount" value="100.00 TRY" readonly class="shadcn-ui-input mt-1"/>
+            </div>
+            <button type="button" id="proceed-button" class="shadcn-ui-button w-full mt-4">Proceed to 3D Secure</button>
+        </form>
+    </div>
+
+    <!-- 3D Secure Screen -->
+    <div id="3d-secure-screen" class="hidden max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold">ZenciBank 3D Secure Verification</h1>
+            <p class="text-gray-600">Verifying your payment</p>
+        </div>
+        <div id="loading" class="text-center mb-6">
+            <div class="animate-spin h-16 w-16 border-4 border-t-4 border-blue-500 rounded-full mx-auto mb-4"></div>
+            <p class="text-lg">Sending verification code...</p>
+        </div>
+        <div id="verification-form" class="hidden">
+            <form id="verify-form">
+                <div class="mb-4">
+                    <label for="secure-code" class="block text-sm font-medium text-gray-700">Enter 3D Secure Code</label>
+                    <input type="text" id="secure-code" placeholder="Enter code sent to your phone" class="shadcn-ui-input mt-1"/>
+                </div>
+                <button type="submit" class="shadcn-ui-button w-full mt-4">Verify and Pay</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Payment Successful Page -->
+    <div id="success-screen" class="hidden max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold">Payment Successful!</h1>
+            <p class="text-gray-600">Your invoice will be sent by mail.</p>
+        </div>
+        <div class="text-center mb-6">
+            <div class="h-16 w-16 text-green-500 mx-auto mb-4">
+                <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22.78 6.22a1 1 0 0 0-1.56-1.28L10 14.58l-5.22-5.2a1 1 0 0 0-1.56 1.28l6 6a1 1 0 0 0 1.4.06l12-12z"/>
+                </svg>
+            </div>
+        </div>
+        <div class="text-center">
+            <a href="/" class="shadcn-ui-button">Go to Homepage</a>
+        </div>
+    </div>
+
+    <script>
+        // Get the amount from the query parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const amount = urlParams.get('amount');
+
+        // Set the amount in the form
+        document.getElementById('amount').value = amount ? `${amount} TRY` : '0.00 TRY';
+
+        // Format card number with spaces and enforce 16 characters limit
+        document.getElementById('card-number').addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/g, '').slice(0, 16);
+            const formattedValue = value.match(/.{1,4}/g)?.join(' ') || '';
+            e.target.value = formattedValue;
+        });
+
+        // Format expiry date as MM/YY and enforce month/year limits
+        document.getElementById('expiry-date').addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 4) {
+                value = value.slice(0, 4); // Limit to MMYY format
+            }
+            let month = value.slice(0, 2);
+            let year = value.slice(2, 4);
+
+            if (month > '12') {
+                month = '12'; // Cap month at 12
+            }
+
+            e.target.value = month ? `${month}/${year}` : value;
+        });
+
+        // Handle form submissions
+        document.getElementById('proceed-button').addEventListener('click', function() {
+            document.getElementById('payment-form').classList.add('hidden');
+            document.getElementById('3d-secure-screen').classList.remove('hidden');
+
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('verification-form').classList.remove('hidden');
+            }, 3000); // Simulate loading time for 3D Secure
+        });
+
+        document.getElementById('verify-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            setTimeout(() => {
+                document.getElementById('3d-secure-screen').classList.add('hidden');
+                document.getElementById('success-screen').classList.remove('hidden');
+            }, 3000); // Simulate processing time for payment
+        });
+    </script>
+</body>
+</html>
